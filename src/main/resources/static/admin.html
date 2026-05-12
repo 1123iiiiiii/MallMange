@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>品珂优选商城后台管理系统</title>
+    <!-- import CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+</head>
+<body>
+<div id="app">
+    <el-header style="background-color: #3094D6;color: #fff">
+        <div style="display: flex;justify-content: space-between;align-items: center">
+            <h3>品珂优选商城后台管理系统</h3>
+            <h3>
+                欢迎小yu回来!
+                <a href="#" style="color: #302AE9; text-decoration: underline;" @click.prevent="logout">退出登录</a>
+            </h3>
+        </div>
+    </el-header>
+    <div>
+
+        <el-row>
+            <!--    左列表-->
+            <div>
+                <el-col :span="3">
+                    <el-menu default-active="category-list" @select="handleMenuSelect">
+                        <el-submenu index="1">
+                            <template slot="title">
+                                <i class="el-icon-s-flag"></i>
+                                <span>分类管理</span>
+                            </template>
+                            <el-menu-item-group>
+                                <el-menu-item index="category-list" @select="handleMenuSelect">分类列表</el-menu-item>
+                                <el-menu-item index="category-add" @select="handleMenuSelect">添加分类</el-menu-item>
+                            </el-menu-item-group>
+                        </el-submenu>
+                        <el-submenu index="2">
+                            <template slot="title">
+                                <i class="el-icon-picture"></i>
+                                <span>轮播图管理</span>
+                            </template>
+                            <el-menu-item-group>
+                                <el-menu-item index="2-1" @select="handleMenuSelect">轮播图列表</el-menu-item>
+                                <el-menu-item index="2-2" @select="handleMenuSelect">添加轮播图</el-menu-item>
+                            </el-menu-item-group>
+                        </el-submenu>
+                        <el-submenu index="3">
+                            <template slot="title">
+                                <i class="el-icon-shopping-cart-2"></i>
+                                <span>商品管理</span>
+                            </template>
+                            <el-menu-item-group>
+                                <el-menu-item index="3-1" @select="handleMenuSelect">商品列表</el-menu-item>
+                                <el-menu-item index="3-2" @select="handleMenuSelect">添加商品</el-menu-item>
+                            </el-menu-item-group>
+                        </el-submenu>
+                    </el-menu>
+                </el-col>
+            </div>
+            <!--     右内容-->
+            <el-col :span="21">
+                <div>
+                    <el-main class="content">
+                        <div v-if="currentPage === 'category-list'">
+                            <el-table :data="categoryList">
+                                <el-table-column prop="id" label="序号"></el-table-column>
+                                <el-table-column prop="name" label="分类名称"></el-table-column>
+                                <el-table-column label="操作">
+                                    <template slot-scope="scope"
+                                              style="display: flex;justify-content: center;align-content: center">
+                                        <el-button type="success" size="mini" @click="handleCategoryEdit(scope.row)">修改
+                                        </el-button>
+                                        <el-button type="danger" size="mini" @click="handleCategoryDelete(scope.row)">删除
+                                        </el-button>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+                        </div>
+                        <!-- 添加分类弹窗 -->
+                        <div>
+                            <!-- .sync动态绑定  @close是（监听事件）关闭对话框-->
+                            <el-dialog
+                                    title="添加分类"
+                                    :visible.sync="addCategoryDialogVisible"
+                                    width="400px"
+                                    @close="resetCategoryForm"
+                            >
+                                <el-form :model="categoryForm" :rules="categoryRules" ref="categoryForm"
+                                         label-width="80px">
+                                    <el-form-item label="分类名称" prop="name">
+                                        <el-input v-model="categoryForm.name" placeholder="请输入分类名称"></el-input>
+                                    </el-form-item>
+                                </el-form>
+                                <div slot="footer" class="dialog-footer">
+                                    <el-button @click="addCategoryDialogVisible = false">取消</el-button>
+                                    <el-button type="primary" @click="submitCategory">确定</el-button>
+                                </div>
+                            </el-dialog>
+
+                            <!-- 轮播图分类选择对话框 -->
+                            <el-dialog title="选择分类" :visible.sync="categorySelectDialogVisible" width="400px">
+                                <div style="margin-bottom: 20px;">
+                                    <el-select v-model="selectedCategoryId" placeholder="请选择分类"
+                                               style="width: 100%;">
+                                        <el-option
+                                                v-for="category in categoryList"
+                                                :key="category.id"
+                                                :label="category.name"
+                                                :value="category.id">
+                                        </el-option>
+                                    </el-select>
+                                </div>
+                                <div slot="footer" class="dialog-footer">
+                                    <el-button @click="categorySelectDialogVisible = false">取消</el-button>
+                                    <el-button type="primary" @click="saveBannerWithCategory">确定</el-button>
+                                </div>
+                            </el-dialog>
+
+                            <div v-if="currentPage === '2-1'">
+                                <el-table :data="bannerArr">
+                                    <el-table-column prop="id"
+                                                     label="序号"></el-table-column>
+                                    <el-table-column label="轮播图">
+                                        <template slot-scope="scope">
+                                            <!-- 绑定图片地址，并设置宽高 -->
+                                            <img :src="scope.row.url" style="display: flex;width: 100px; height:100%;"
+                                                 alt="轮播图">
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column label="操作">
+                                        <template slot-scope="scope">
+                                            <el-button type="danger" @click="handleBannerDelete(scope.row)">删除
+                                            </el-button>
+                                        </template>
+                                    </el-table-column>
+                                </el-table>
+                            </div>
+                        </div>
+                        <div>
+                            <div v-if="currentPage === '2-2'">
+                                <el-header style="background-color: #3094D6;color: #fff;">
+                                    <div style="padding: 12px 0;display: flex;align-items: center;">
+                                        <i class="el-icon-back"></i>
+                                        <a href="#" style="text-decoration-line: none;color: #fff;"
+                                           @click="currentPage = '2-1'">返回</a>
+                                        <el-divider direction="vertical"></el-divider>
+                                        <span style="font-size: 20px;color: #3F3F3F">添加轮播图</span>
+                                    </div>
+                                </el-header>
+                                <el-upload
+                                        ref="upload"
+                                        action="https://jsonplaceholder.typicode.com/posts/"
+                                        list-type="picture-card"
+                                        :on-preview="handlePictureCardPreview"
+                                        :on-remove="handleRemove"
+                                        :on-success="handleSuccess">
+                                    <i class="el-icon-plus"></i>
+                                </el-upload>
+                                <el-dialog :visible.sync="dialogVisible">
+                                    <img width="100%" :src="dialogImageUrl" alt="">
+                                </el-dialog>
+                                <el-button @click="$refs.upload.$el.querySelector('.el-upload').click()">添加轮播图
+                                </el-button>
+                            </div>
+                        </div>
+                        <div v-if="currentPage ==='3-1'">
+                            <el-table :data="productArr">
+                                <el-table-column prop="id" label="序号"></el-table-column>
+                                <el-table-column prop="title" label="商品标题"></el-table-column>
+                                <el-table-column prop="price" label="价格"></el-table-column>
+                                <el-table-column prop="oldPrice" label="原价"></el-table-column>
+                                <el-table-column label="商品图片">
+                                    <template slot-scope="scope">
+                                        <img :src="scope.row.url"
+                                             alt="商品图片"
+                                             style="width: 120px; height: 110px; object-fit: cover;">
+                                    </template>
+                                </el-table-column>
+                                <el-table-column prop="saleCount" label="销量"></el-table-column>
+                                <el-table-column label="操作">
+                                    <template slot-scope="scope"
+                                              style="display: flex;justify-content: center;align-content: center">
+                                        <el-button type="success" size="mini" @click="handleProductEdit(scope.row)">修改
+                                        </el-button>
+                                        <el-button type="danger" size="mini" @click="handleProductDelete(scope.row)">删除
+                                        </el-button>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+                            <!-- 修改商品对话框 -->
+                            <!-- 修改商品对话框 -->
+                            <el-dialog title="修改商品" :visible.sync="productEditDialogVisible" width="50%">
+                                <el-form :model="productEditForm" :rules="productEditRules" ref="productEditForm"
+                                         label-width="100px">
+                                    <el-form-item label="商品标题" prop="title">
+                                        <el-input v-model="productEditForm.title"></el-input>
+                                    </el-form-item>
+                                    <el-form-item label="商品价格" prop="price">
+                                        <el-input v-model="productEditForm.price"></el-input>
+                                    </el-form-item>
+                                    <el-form-item label="商品原价" prop="oldPrice">
+                                        <el-input v-model="productEditForm.oldPrice"></el-input>
+                                    </el-form-item>
+                                    <el-form-item label="销量">
+                                        <el-input v-model="productEditForm.saleCount"></el-input>
+                                    </el-form-item>
+                                    <!-- 分类选择器 -->
+                                    <el-form-item label="商品分类">
+                                        <el-select v-model="productEditForm.categoryId" placeholder="请选择分类">
+                                            <el-option
+                                                    v-for="category in categoryList"
+                                                    :key="category.id"
+                                                    :label="category.name"
+                                                    :value="category.id">
+                                            </el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-form-item label="商品图片">
+                                        <el-upload
+                                                ref="productEditUpload"
+                                                action="https://jsonplaceholder.typicode.com/posts/"
+                                                list-type="picture-card"
+                                                :on-preview="handleProductPicturePreview"
+                                                :on-remove="handleProductPictureRemove"
+                                                :on-success="handleProductEditPictureSuccess"
+                                                :file-list="productEditForm.fileList"
+                                                :limit="1">
+                                            <i class="el-icon-plus"></i>
+                                        </el-upload>
+                                    </el-form-item>
+                                </el-form>
+                                <div slot="footer" class="dialog-footer">
+                                    <el-button @click="productEditDialogVisible = false">取消</el-button>
+                                    <el-button type="primary" @click="submitProductEdit">确定</el-button>
+                                </div>
+                            </el-dialog>
+
+                            <!-- 商品图片预览对话框 -->
+                            <el-dialog :visible.sync="productPictureDialogVisible" width="50%">
+                                <img width="100%" :src="productPictureDialogUrl" alt="商品图片预览">
+                            </el-dialog>
+                        </div>
+                        <div v-if="currentPage === '3-2'">
+                            <el-header style="background-color: #3094D6;color: #fff;">
+                                <div style="padding: 12px 0;display: flex;align-items: center;">
+                                    <i class="el-icon-back"></i>
+                                    <a href="#" style="text-decoration-line: none;color: #fff;"
+                                       @click="currentPage = '3-1'">返回</a>
+                                    <el-divider direction="vertical"></el-divider>
+                                    <span style="font-size: 20px;color: #3F3F3F">添加商品</span>
+                                </div>
+                            </el-header>
+                            <div style="padding: 20px;">
+                                <el-form :model="productAddForm" :rules="productAddRules" ref="productAddForm"
+                                         label-width="100px">
+                                    <el-form-item label="商品标题" prop="title">
+                                        <el-input v-model="productAddForm.title"></el-input>
+                                    </el-form-item>
+                                    <el-form-item label="商品价格" prop="price">
+                                        <el-input v-model="productAddForm.price"></el-input>
+                                    </el-form-item>
+                                    <el-form-item label="商品原价" prop="oldPrice">
+                                        <el-input v-model="productAddForm.oldPrice"></el-input>
+                                    </el-form-item>
+                                    <el-form-item label="销量">
+                                        <el-input v-model="productAddForm.saleCount"></el-input>
+                                    </el-form-item>
+                                    <!-- 分类选择器 -->
+                                    <el-form-item label="商品分类">
+                                        <el-select v-model="productAddForm.categoryId" placeholder="请选择分类">
+                                            <el-option
+                                                    v-for="category in categoryList"
+                                                    :key="category.id"
+                                                    :label="category.name"
+                                                    :value="category.id">
+                                            </el-option>
+                                        </el-select>
+                                    </el-form-item>
+                                    <el-form-item label="商品图片">
+                                        <el-upload
+                                                ref="productAddUpload"
+                                                action="https://jsonplaceholder.typicode.com/posts/"
+                                                list-type="picture-card"
+                                                :on-preview="handleProductPicturePreview"
+                                                :on-remove="handleProductPictureRemove"
+                                                :on-success="handleProductAddPictureSuccess"
+                                                :file-list="productAddForm.fileList"
+                                                :limit="1">
+                                            <i class="el-icon-plus"></i>
+                                        </el-upload>
+                                        <el-dialog :visible.sync="productPictureDialogVisible" width="50%">
+                                            <img width="100%" :src="productPictureDialogUrl" alt="商品图片预览">
+                                        </el-dialog>
+                                    </el-form-item>
+                                    <el-form-item>
+                                        <el-button @click="currentPage = '3-1'">取消</el-button>
+                                        <el-button type="primary" @click="submitProductAdd">添加商品</el-button>
+                                    </el-form-item>
+                                </el-form>
+                            </div>
+                        </div>
+
+                    </el-main>
+                </div>
+
+            </el-col>
+        </el-row>
+
+    </div>
+</div>
+</body>
+<!-- 引入axios框架-->
+<script src="https://cdn.bootcdn.net/ajax/libs/axios/0.21.1/axios.min.js"></script>
+
+<!-- import Vue before Element -->
+<script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+
+<!-- import JavaScript -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script>
+    let v = new Vue({
+        el: '#app',
+        data: function () {
+            return {
+                dialogVisible: false,
+                dialogImageUrl: '',
+                currentPage: "category-list",
+                categoryList: [],
+                bannerArr: [],
+                nextId:5,
+                productArr:[],
+                currentImageUrl: '',  // 当前要保存的图片URL
+                selectedCategoryId: null,          // 选中的分类ID
+                categorySelectDialogVisible: false, // 分类选择对话框显示控制
+                // 添加分类弹窗
+                addCategoryDialogVisible: false,  // 控制弹窗显示/隐藏
+                categoryForm: {                   // 分类表单数据
+                    name: ''
+                },
+                categoryRules: {                  // 表单验证规则
+                    name: [
+                        { required: true, message: '分类名称不能为空', trigger: 'blur' }, <!--trigger啥时候触发(blur:失去焦点时触发)-->
+                        {pattern: /^[\u4e00-\u9fa5]+$/,
+                            message: '分类名称只能输入中文',
+                            trigger: 'blur' }
+                    ]
+                },
+                productEditDialogVisible: false, // 控制修改商品对话框显示
+                productEditForm: {               // 修改商品表单数据
+                    id: '',
+                    title: '',
+                    price: '',
+                    oldPrice: '',
+                    url: '',
+                    saleCount: '',
+                    categoryId: '' , // 分类ID字段
+                    fileList: []     // 上传文件列表
+
+
+                },
+                productEditRules: {              // 表单验证规则
+                    title: [
+                        { required: true, message: '商品标题不能为空', trigger: 'blur' }
+                    ],
+                    price: [
+                        { required: true, message: '价格不能为空', trigger: 'blur' },
+                        { type: 'number', message: '价格必须是数字', trigger: 'blur' }
+                    ],
+                    oldPrice: [
+                        { required: true, message: '原价不能为空', trigger: 'blur' },
+                        { type: 'number', message: '原价必须是数字', trigger: 'blur' }
+                    ]
+                },
+                // 添加商品弹窗
+                productAddDialogVisible: false,  // 控制添加商品对话框显示
+                productAddForm: {               // 添加商品表单数据
+                title: '',
+                    price: '',
+                    oldPrice: '',
+                    url: '',
+                    saleCount: '',
+                    categoryId: '',  // 分类ID字段
+                    fileList: []     // 上传文件列表
+
+                },
+                productAddRules: {              // 添加商品表单验证规则
+                    title: [
+                        {required: true, message: '商品标题不能为空', trigger: 'blur'}
+                    ],
+                    price: [
+                        {required: true, message: '价格不能为空', trigger: 'blur'},
+                        {pattern: /^\d+(\.\d+)?$/, message: '价格必须是数字', trigger: 'blur'}
+                    ],
+                    oldPrice: [
+                        {required: true, message: '原价不能为空', trigger: 'blur'},
+                        {pattern: /^\d+(\.\d+)?$/, message: '原价必须是数字', trigger: 'blur'}
+                    ]
+                },
+                productPictureDialogVisible: false,  // 商品图片预览对话框
+                productPictureDialogUrl: ''          // 商品图片预览URL
+            }
+        },
+        methods: {
+            indexMethod(index) {
+                return index+1;
+            },
+            handleMenuSelect(index) {
+                    if (index === 'category-add') {
+                        // 点击"添加分类"时显示弹窗
+                        this.showAddCategoryDialog();
+                    } else if (index === '3-2') {
+                        // 点击"添加商品"时初始化表单
+                        this.handleProductAdd();
+                        this.currentPage = index;
+                    } else {
+                        // 其他菜单项正常切换页面
+                        this.currentPage = index;
+                    }
+                },
+            // 显示添加分类弹窗
+            showAddCategoryDialog: function() {
+                this.addCategoryDialogVisible = true;
+            },
+            // 重置分类表单
+            resetCategoryForm: function() {
+                this.categoryForm = {
+                    name: ''
+                };
+                // 清除上次的验证提示
+                if (this.$refs.categoryForm) {
+                    this.$refs.categoryForm.clearValidate();
+                }
+            },
+            // 提交分类
+            submitCategory: function() {
+                this.$refs.categoryForm.validate((valid) => {
+                    if (valid) {
+                        axios.post("/category/add", this.categoryForm).then((res) => {
+                            if (res.data > 0) {
+                                this.$message.success('添加分类成功！');
+                                this.addCategoryDialogVisible = false;
+                                // 重新加载分类列表
+                                this.loadCategoryList();
+                                // 重置表单
+                                this.resetCategoryForm();
+                            } else {
+                                this.$message.error('添加分类失败！');
+                            }
+                        }).catch((error) => {
+                            console.error('添加分类失败:', error);
+                            this.$message.error('添加分类失败，请重试！');
+                        });
+                    } else {
+                        this.$message.warning('请填写正确的分类名称');
+                        return false;
+                    }
+                });
+            },
+            // 加载分类列表
+            loadCategoryList: function() {
+                axios.get("/category/select").then((res) => {
+                    this.categoryList = res.data;
+                });
+            },
+            // 修改：使用 $prompt 实现修改分类
+            handleCategoryEdit: function(row) {
+                this.$prompt('请输入新的分类名称', '修改分类', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    inputValue: row.name,  // 默认值为当前分类名称
+                    inputPattern: /^[\u4e00-\u9fa5]+$/,  // 正则验证：只能输入中文
+                    inputErrorMessage: '分类名称只能输入中文且不能为空',
+                    type: 'warning'
+                }).then(({ value }) => {
+                    // 用户点击"确定"并输入了内容
+                    // value 是用户输入的新分类名称
+                    axios.post("/category/update", {
+                        id: row.id,
+                        name: value
+                    }).then((res) => {
+                        if (res.data > 0) {
+                            this.$message.success('修改分类成功！');
+                            // 重新加载分类列表
+                            this.loadCategoryList();
+                        } else {
+                            this.$message.error('修改分类失败！');
+                        }
+                    }).catch((error) => {
+                        console.error('修改分类失败:', error);
+                        this.$message.error('修改分类失败，请重试！');
+                    });
+                }).catch(() => {
+                    // 用户点击"取消"
+                    this.$message.info('已取消修改');
+                });
+            },
+
+            // 删除分类
+            handleCategoryDelete: function(row) {
+                this.$confirm('确定要删除分类"' + row.name + '"吗？', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    // 调用删除接口
+                    axios.get("/category/delete", {
+                        params: { id: row.id }
+                    }).then((res) => {
+                        //res.data 是后端返回的删除行数（影响的行数）
+                        if (res.data > 0) {
+                            this.$message.success('删除成功！');
+                            // 重新加载分类列表
+                            this.loadCategoryList();
+                        } else {
+                            this.$message.error('删除失败！');
+                        }
+                    }).catch((error) => {
+                        console.error('删除分类失败:', error);
+                        this.$message.error('删除失败，请重试！');
+                    });
+                }).catch(() => {
+                    this.$message.info('已取消删除');
+                });
+            },
+            logout() {
+                this.$confirm('确定要退出登录吗？', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    this.$message({
+                        type: 'success',
+                        message: '退出登录成功！'
+                    });
+                    window.location.href = 'index.html';
+                }).catch(() => {
+                    this.$message({
+                        type: 'info',
+                        message: '已取消退出'
+                    });
+                });
+            },
+
+            handleSuccess(response, file) {
+                this.saveBannerToDatabase({
+                    id: this.nextId++,
+                    // url: URL.createObjectURL(file.raw) // 本地预览地址（实际项目需替换为后端返回的URL）
+                    url: response.url
+                });
+
+            },
+            handlePictureCardPreview(file) {
+                this.dialogImageUrl = file.url;
+                this.dialogVisible = true;
+            },
+            handleRemove(file, fileList) {
+                console.log('File removed: ', file);
+                this.bannerArr = this.bannerArr.filter(item => item.id !== row.id);
+            },
+            handleBannerDelete(row) {
+                this.$confirm('确定要删除该轮播图吗？', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    axios.get("/banner/delete", {
+                        params: { id: row.id }
+                    }).then((res) => {
+                        if (res.data > 0) {
+                            // 数据库删除成功，同时从前端 bannerArr 中删除
+                            this.bannerArr = this.bannerArr.filter(item => item.id !== row.id);
+                            this.$message.success('删除成功！');
+                        } else {
+                            this.$message.error('删除失败！');
+                        }
+                    }).catch((error) => {
+                        console.error('删除轮播图失败:', error);
+                        this.$message.error('删除失败，请重试！');
+                    });
+                }).catch(() => {
+                    this.$message({
+                        type: 'info',
+                        message: '已取消删除'
+                    });
+                });
+            },
+
+            // 删除商品
+            handleProductDelete(row) {
+                this.$confirm('确定要删除商品"' + row.title + '"吗？', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    axios.get("/product/delete", {
+                        params: { id: row.id }
+                    }).then((res) => {
+                        if (res.data > 0) {
+                            // 删除成功，从前端数组中移除
+                            this.productArr = this.productArr.filter(item => item.id !== row.id);
+                            this.$message.success('删除成功！');
+                        } else {
+                            this.$message.error('删除失败！');
+                        }
+                    }).catch((error) => {
+                        console.error('删除商品失败:', error);
+                        this.$message.error('删除失败，请重试！');
+                    });
+                }).catch(() => {
+                    this.$message({
+                        type: 'info',
+                        message: '已取消删除'
+                    });
+                });
+            },
+
+            // 处理商品修改
+            handleProductEdit: function (row) {
+                // 复制行数据到修改表单
+                this.productEditForm = Object.assign({}, row);
+                // 初始化文件列表
+                this.productEditForm.fileList =
+                    row.url ? [{
+                        name: '商品图片',
+                        url: row.url
+                    }] : [];
+                // 显示修改表单
+                this.productEditDialogVisible = true;
+            },
+
+            // 提交商品修改
+            submitProductEdit: function() {
+                this.$refs.productEditForm.validate((valid) => {
+                    if (valid) {
+                        // 使用params发送URL参数，避免JSON序列化问题
+                        axios.post("/product/update", null, {
+                            params: {
+                                id: this.productEditForm.id,
+                                title: this.productEditForm.title,
+                                price: parseFloat(this.productEditForm.price),
+                                oldPrice: parseFloat(this.productEditForm.oldPrice),
+                                url: this.productEditForm.url,
+                                saleCount: parseInt(this.productEditForm.saleCount) || 0,
+                                categoryId: this.productEditForm.categoryId
+                            }
+                        }).then((res) => {
+                            if (res.data > 0) {
+                                this.$message.success('修改商品成功！');
+                                this.productEditDialogVisible = false;
+                                // 重新加载商品列表
+                                axios.get("/product/select").then(function (res) {
+                                    v.productArr = res.data;
+                                });
+                            } else {
+                                this.$message.error('修改商品失败！');
+                            }
+                        }).catch((error) => {
+                            console.error('修改商品失败:', error);
+                            this.$message.error('修改商品失败，请重试！');
+                        });
+                    } else {
+                        this.$message.warning('请填写正确的商品信息');
+                        return false;
+                    }
+                });
+            },
+            // 处理商品添加
+            handleProductAdd: function() {
+                this.productAddForm = {
+                    title: '',
+                    price: '',
+                    oldPrice: '',
+                    url: '',
+                    saleCount: '',
+                    categoryId: '',
+                    fileList: []
+                };
+            },
+            // 提交商品添加
+            submitProductAdd: function() {
+                this.$refs.productAddForm.validate((valid) => {
+                    if (valid) {
+                        // 使用params发送URL参数，避免JSON序列化问题
+                        axios.post("/product/add", null, {
+                            params: {
+                                title: this.productAddForm.title,
+                                price: parseFloat(this.productAddForm.price),
+                                oldPrice: parseFloat(this.productAddForm.oldPrice),
+                                url: this.productAddForm.url,
+                                saleCount: parseInt(this.productAddForm.saleCount) || 0,
+                                categoryId: this.productAddForm.categoryId
+                            }
+                        }).then((res) => {
+                            if (res.data > 0) {
+                                this.$message.success('添加商品成功！');
+                                // 重新加载商品列表
+                                axios.get("/product/select").then(function (res) {
+                                    v.productArr = res.data;
+                                });
+                            } else {
+                                this.$message.error('添加商品失败！');
+                            }
+                        }).catch((error) => {
+                            console.error('添加商品失败:', error);
+                            this.$message.error('添加商品失败，请重试！');
+                        });
+                    } else {
+                        this.$message.warning('请填写正确的商品信息');
+                        return false;
+                    }
+                });
+            },
+
+            // 保存轮播图到数据库
+            saveBannerToDatabase: function(imageUrl, file) {
+                // 如果分类列表还没加载，先加载
+                if (this.categoryList.length === 0) {
+                    axios.get("/category/select").then((res) => {
+                        this.categoryList = res.data;
+                        this.showCategorySelectForBanner(imageUrl);
+                    });
+                } else {
+                    this.showCategorySelectForBanner(imageUrl);
+                }
+            },
+
+// 显示分类选择对话框
+            showCategorySelectForBanner: function(imageUrl, bannerObj) {
+                this.selectedCategoryId = null;  // 重置选择
+                this.categorySelectDialogVisible = true;
+                this.currentImageUrl = imageUrl;  // 保存图片URL
+            },
+            // 保存轮播图到数据库
+            saveBannerWithCategory: function() {
+                if (!this.selectedCategoryId) {
+                    this.$message.error('请选择分类！');
+                    return;
+                }
+
+                axios.post("/banner/add", null, {
+                    params: {
+                        url: this.currentImageUrl,
+                        categoryId: this.selectedCategoryId
+                    }
+                }).then((res) => {
+                    if (res.data > 0) {
+                        // 数据库保存成功，再添加到前端列表
+                        const newBanner = {
+                            id: this.nextId++,  // 或者使用数据库返回的 id
+                            url: this.currentImageUrl
+                        };
+                        this.bannerArr.push(newBanner);
+                        this.$message.success('轮播图已保存到数据库！');
+                        this.categorySelectDialogVisible = false;
+                    } else {
+                        this.$message.error('保存到数据库失败！');
+                    }
+                }).catch((error) => {
+                    console.error('保存轮播图到数据库失败:', error);
+                    this.$message.error('保存失败，请重试！');
+                });
+            },
+
+            // 商品图片预览
+            handleProductPicturePreview(file) {
+                this.productPictureDialogUrl = file.url;
+                this.productPictureDialogVisible = true;
+            },
+
+            // 商品图片删除
+            handleProductPictureRemove(file, fileList) {
+                // 清空URL
+                // if (this.currentPage === '3-1') {
+                //     this.productEditForm.url = '';
+                //     this.productEditForm.fileList = [];
+                // } else if (this.currentPage === '3-2') {
+                //     this.productAddForm.url = '';
+                //     this.productAddForm.fileList = [];
+                // }
+                // 只清空fileList，保持URL不变（用户可能重新上传）
+                if (this.currentPage === '3-1') {
+                    this.productEditForm.fileList = fileList;
+                } else if (this.currentPage === '3-2') {
+                    this.productAddForm.fileList = fileList;
+                }
+            },
+
+            // 修改商品图片上传成功
+            handleProductEditPictureSuccess(response, file, fileList) {
+                this.productEditForm.url = URL.createObjectURL(file.raw);
+
+                // this.productEditForm.url = response.url;
+                this.productEditForm.fileList = fileList;
+            },
+
+            // 添加商品图片上传成功
+            handleProductAddPictureSuccess(response, file, fileList) {
+                this.productEditForm.url = URL.createObjectURL(file.raw);
+
+                // this.productAddForm.url = response.url;
+                this.productAddForm.fileList = fileList;
+            },
+
+        },
+        created: function () {
+            this.loadCategoryList();// 加载分类列表
+            axios.get("/product/select").then(function (res) {
+                v.productArr = res.data
+                });
+            axios.get("/banner/select").then(function (res) {
+                v.bannerArr = res.data
+                });
+            }
+    })
+</script>
+</html>

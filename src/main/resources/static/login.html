@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <!-- import CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+</head>
+
+<body style="background-image: url('/imgs/bg.jpg');background-size: cover;background-repeat: no-repeat">
+<div id="app" >
+    <h1 style="text-align: center;color:#3195DB">欢迎来到品珂优选</h1>
+    <img src="/imgs/shark.png" style="position:relative;left: 50%;transform: translateX(-50%);width: 100px;height: 100px">
+    <div style="text-align: center;color:#3195DB">
+        Selective Preference
+    </div>
+    <div style="background-color: rgba(255, 255, 255, 0.2);width: 300px;height: 300px;position: relative;left: 50%;transform: translateX(-50%);margin-top: 30px">
+        <div style="margin-top: 50px">
+            <el-form :label-position="labelPosition" label-width="60px" :model="formLabelAlign" style="text-align: center;margin-top: 50px">
+                <el-form-item label="用户名" >
+                    <el-input placeholder="请输入用户名" v-model="formLabelAlign.username"></el-input>
+                </el-form-item>
+                <el-form-item label="密码" >
+                    <el-input placeholder="请输入密码" v-model="formLabelAlign.password"></el-input>
+                </el-form-item>
+                <div><el-checkbox v-model="rememberMe" style="margin-top: 50px">记住用户名和密码</el-checkbox></div>
+                <el-form-item >
+                    <el-button type="primary" @click="login" style="margin-left:-80px ">登录</el-button>
+                </el-form-item>
+            </el-form>
+        </div>
+    </div>
+
+</div>
+</body>
+<!-- 引入Vue框架-->
+<script src="https://cdn.staticfile.org/vue/2.6.14/vue.min.js"></script>
+
+<!-- 引入axios框架-->
+<script src="https://cdn.bootcdn.net/ajax/libs/axios/0.21.1/axios.min.js"></script>
+
+<!-- import JavaScript -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script>
+    let v=new Vue({
+        el:'#app',
+        data:function () {
+            return{
+                labelPosition: 'right',
+                rememberMe: false,  // 记住密码复选框
+                formLabelAlign: {
+                    username: '',
+                    password: '',
+                }
+            }
+        },
+        methods:{
+            login(){
+                axios.post('/login',v.formLabelAlign).then(function (res) {
+                    if (res.data== 1){
+                        // 登录成功，检查是否记住密码
+                        if (v.rememberMe) {
+                            v.saveCredentials(v.formLabelAlign.username, v.formLabelAlign.password);
+                        } else {
+                            v.clearCredentials();
+                        }
+                        location.href="/admin.html"
+                        }else if (res.data== 2){
+                        v.$message.error("密码错误")
+                        }else{
+                        v.$message.error("用户不存在")
+                    }
+                    })
+            },
+            // 保存用户名和密码到cookie
+            saveCredentials(username, password) {
+                this.setCookie('remember_username', username, 30); // 保存30天
+                this.setCookie('remember_password', password, 30);
+            },
+
+            // 清除保存的凭据
+            clearCredentials() {
+                this.setCookie('remember_username', '', -1);
+                this.setCookie('remember_password', '', -1);
+            },
+
+            // 设置cookie
+            setCookie(name, value, days) {
+                const date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                const expires = "expires=" + date.toUTCString();
+                document.cookie = name + "=" + encodeURIComponent(value) + ";" + expires + ";path=/";
+            },
+
+            // 获取cookie
+            getCookie(name) {
+                const cookieName = name + "=";
+                // 解码cookie字符串，处理特殊字符
+                const decodedCookie = decodeURIComponent(document.cookie);
+                // 按分号分割为cookie数组
+                const cookies = decodedCookie.split(';');
+                for(let i = 0; i < cookies.length; i++) {
+                    let cookie = cookies[i];
+                    // 去除空格
+                    while (cookie.charAt(0) == ' ') {
+                        cookie = cookie.substring(1);
+                    }
+                    //// 检查cookie名称是否匹配
+                    if (cookie.indexOf(cookieName) == 0) {
+                        return cookie.substring(cookieName.length, cookie.length);
+                    }
+                }
+                return "";
+            }
+        },
+
+        // 页面加载时检查是否有保存的凭据
+        mounted() {
+            const savedUsername = this.getCookie('remember_username');
+            const savedPassword = this.getCookie('remember_password');
+
+            if (savedUsername && savedPassword) {
+                this.formLabelAlign.username = savedUsername;
+                this.formLabelAlign.password = savedPassword;
+                this.rememberMe = true; // 自动勾选记住密码
+            }
+        }
+
+    })
+</script>
+</html>

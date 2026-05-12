@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.ccit.springboot05_248.mapper.UserMapper">
+
+    <insert id="reg" parameterType="org.ccit.springboot05_248.entity.User">
+            insert into user (id,username,password,nick)
+            values (#{id},#{username},#{password},#{nick})
+    </insert>
+    <select id="login" parameterType="String" resultType="String">
+        select password from user where username=#{username}
+    </select>
+
+</mapper>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <!-- import CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+</head>
+<body>
+<div id="app">
+    <el-row :gutter="20" style="display: flex;justify-content: center">
+        <el-col :span="4"><div>
+            <img src="/imgs/logo.png" alt="logo" width="100%" height="100%">
+        </div></el-col>
+        <el-col :span="16" style="flex-direction: column;justify-content: center"><div>
+            <template>
+                <div >
+                    <span>首页</span>
+                    <el-divider direction="vertical"></el-divider>
+                    <span>热点资讯</span>
+                    <el-divider direction="vertical"></el-divider>
+                    <span>店家入驻</span>
+                    <el-divider direction="vertical"></el-divider>
+                    <span>社会招聘</span>
+                    <el-divider direction="vertical"></el-divider>
+                    <span>校园招聘</span>
+                    <el-divider direction="vertical"></el-divider>
+                    <span>帮助</span>
+                </div>
+            </template>
+        </div></el-col>
+    </el-row>
+    <div style="background-color: #89C8EB" >
+        <div>
+            <el-menu style="width:1200px;margin: 0 auto"
+                     :default-active="activeIndex2"
+                     class="el-menu-demo" mode="horizontal"
+                     @select="handleSelect"
+                     background-color="#89C8EB"
+                     text-color="#fff" active-text-color="#F4F3F3"
+            >
+                <el-menu-item v-for="(item,i) in categoryArr"
+                              :key="item.id"
+                              :index="item.id.toString()">
+                    {{item.name}}
+                </el-menu-item>
+                <div style="float: right">
+                    <el-input placeholder="请输入内容"
+                              v-model="keyword"
+                              style="width: 300px;margin-left: 20px;margin-top: 10px" >
+                        <el-button slot="append" type="primary"
+                                   icon="el-icon-search"
+                                   @click="searchProduct"
+                        ></el-button>
+                    </el-input>
+                </div>
+            </el-menu>
+        </div>
+    </div>
+    <div >
+        <el-row style="display: flex;justify-content: center;width: 100%">
+            <el-col :span="8">
+                <el-card :body-style="{ padding: '0px'}">
+                    <img :src="product.url">
+                </el-card>
+            </el-col>
+            <el-col :span="8">
+                <el-card :body-style="{ padding: '4px' }">
+                        <template>
+                           <h3>{{product.title}}</h3>
+                            <hr>
+                            <span>
+                                销量:{{product.saleCount}} 浏览量:{{product.viewCount || 0}}
+                            </span>
+                            <div style="margin-top: 10px">
+                                <span style="font-size: 30px;font-weight: bold">￥{{product.price}}</span>
+                                <span>原价:</span>
+                                <span style="text-decoration: line-through" >{{product.oldPrice}}</span>
+                            </div>
+                            <div style="margin-top: 20px">
+                                <el-row>
+                                    <el-col :span="7">
+                                        <el-card :body-style="{ padding: '0px' }">
+                                            <img src="imgs/ewm.jpg">
+                                            <div style="padding: 14px;">
+                                                <span>扫码购买商品</span>
+                                            </div>
+                                        </el-card>
+                                    </el-col>
+
+                                    <el-col :span="7" style="margin: 0px 10px">
+                                        <el-card :body-style="{ padding: '0px' }">
+                                            <img src="imgs/ewm.jpg">
+                                            <div style="padding: 14px;">
+                                                <span >扫码下载App</span>
+                                            </div>
+                                        </el-card>
+                                    </el-col>
+
+                                    <el-col :span="7">
+                                        <el-card :body-style="{ padding: '0px' }">
+                                            <img src="imgs/ewm.jpg">
+                                            <div style="padding: 14px;">
+                                                <span style="font-size: 15.5px">扫码关注公众号</span>
+                                            </div>
+                                        </el-card>
+                                    </el-col>
+                                </el-row>
+                            </div>
+                        </template>
+                </el-card>
+            </el-col>
+        </el-row>
+    </div>
+    <div>
+        <img src="../imgs/wave.png">
+    </div>
+    <div  style="background-color: #3F3F3F;text-align: center">
+        <div>
+            <p>Copyright&copy 江苏万和系统工程有限公司版权所有苏ICP备12003709号-3苏公网安备11010802029572号</p>
+            <p>涵盖20余门课程体系，致力于打造权威的IT职业教育学习平台</p>
+            <p>万和在线WWW.WANHO.ORG 专注于IT职业技能培训</p>
+        </div>
+        </div>
+    </div>
+</div>
+</body>
+<!-- 引入axios框架-->
+<script src="https://cdn.bootcdn.net/ajax/libs/axios/0.21.1/axios.min.js"></script>
+
+<!-- import Vue before Element -->
+<script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+<!-- import JavaScript -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script>
+    let v=new Vue({
+        el:'#app',
+        data:function () {
+            return{
+                categoryArr:[],
+                product: null  // 当前商品详情
+            }
+        },
+        methods:{
+            // 加载商品详情
+            loadProduct: function(productId) {
+                axios.get("/product/selectById?id=" + productId).then(function (res){
+                    v.product = res.data;
+                    // 统计浏览量
+                    v.incrementViewCount(productId);
+                });
+            },
+            // 增加浏览量（带cookie防重复）
+            incrementViewCount: function(productId) {
+                const cookieKey = 'viewed_product_' + productId;
+                // 检查是否已浏览过
+                if (!this.getCookie(cookieKey)) {
+                    // 未浏览过，增加浏览量
+                    axios.post("/product/incrementViewCount", { id: productId })
+                        .then(function(response) {
+                            if (response.data > 0) {
+                                // 成功后设置cookie，24小时内不再重复统计
+                                v.setCookie(cookieKey, 'true', 24);
+                                // 更新本地显示的浏览量
+                                if (v.product) {
+                                    v.product.viewCount = (v.product.viewCount || 0) + 1;
+                                }
+                            }
+                        })
+                        .catch(function(error) {
+                            console.error('更新浏览量失败:', error);
+                        });
+                }
+            },
+
+            // 设置cookie
+            setCookie: function(name, value, hours) {
+                const date = new Date();
+                date.setTime(date.getTime() + (hours * 60 * 60 * 1000));
+                const expires = "expires=" + date.toUTCString();
+                document.cookie = name + "=" + value + ";" + expires + ";path=/";
+            },
+
+            // 获取cookie
+            getCookie: function(name) {
+                const cookieName = name + "=";
+                const decodedCookie = decodeURIComponent(document.cookie);
+                const cookies = decodedCookie.split(';');
+                for(let i = 0; i < cookies.length; i++) {
+                    let cookie = cookies[i];
+                    while (cookie.charAt(0) == ' ') {
+                        cookie = cookie.substring(1);
+                    }
+                    if (cookie.indexOf(cookieName) == 0) {
+                        return cookie.substring(cookieName.length, cookie.length);
+                    }
+                }
+                return "";
+            }
+        },
+        created:function () {
+            // 从 URL 参数获取商品ID
+            const urlParams = new URLSearchParams(window.location.search);
+            const productId = urlParams.get('productId');
+            // 加载分类列表
+            axios.get("/category/select").then(function (response) {
+                v.categoryArr=response.data;
+            });
+            // 如果有商品ID，加载商品详情
+            if (productId) {
+                this.loadProduct(productId);
+            }
+        }
+    })
+</script>
+</html>
